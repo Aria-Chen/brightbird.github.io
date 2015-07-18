@@ -3,4 +3,5 @@ layout: post
 title: First post!
 ---
 
-This is my first post, how exciting!
+This is my first post, how exciting!  
+Edited by brightbird.
