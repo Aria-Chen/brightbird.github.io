@@ -1,8 +1,7 @@
 ---
 layout: post
-title: First post by _天才_!
+title: 这是我发布的第一篇中文文章
 ---
 
-This is my first post, how exciting!  
-Edited by **天才**brightbird.
+看来我真的是个**天才**:)
 
