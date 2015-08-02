@@ -1,0 +1,178 @@
+---
+layout: post
+title: "Text mining hua qian gu"
+author: "brightbird"
+date: "2015年8月2日"
+output: html_document
+---
+
+####版权声明：转载请注明出处。
+
+  
+  
+  最近一部虐心神剧[《花千骨》](http://baike.baidu.com/subview/3214193/12258556.htm)风靡全国，听说可爱的妹子居然都喜欢。而隔壁室友为了跟萌妹子搭话，居然深夜也在**疯狂的**刷剧情！为了妹子，也是蛮拼的。刚刚听了几场R语言讲座而飘飘然的小明对此表示很不屑：“深夜刷剧，还要记住那么复杂的剧情，效率太低，然无卵用。”但是内心孤傲的小明又不愿在与妹子侃侃而谈这种事情上甘拜下风，那应该如何应对呢？暗下一思，计从中来。小明开始了他的开挂之路。
+  
+####零.词库搜集
+
+  先疯狂百度一番。首先从不明网站获得小说《花千骨》的txt文档，然后在搜狗词库搜索到花千骨以及修仙相关的词库。
+
+####贰. 安装package
+
+  如果你认为小明想通过看小说超越室友，那你就太navie啦！其实小明的神器是:**万能的R！**
+  先安装如下几个package.
+```{r eval=FALSE}
+##安装用于中文分词的包
+install.packages("Rwordseg")
+##安装用于文本进一步清洗的包
+install.packages("tm")
+##安装用于绘制词云的包
+install.packages("wordcloud")
+```
+
+####叁. 分词过程
+
+  配置好环境之后，就可以放开手脚，进行coding啦。不过，还是要按部就班，心急可把不得萌妹子哦。
+```{r eval=FALSE}
+##3.1 安装词库
+library(Rwordseg)
+installDict("DICTIONALY/huaqiangu_dictionary/花千骨词库大全.scel",dictname = "huaqiangu1")
+installDict("DICTIONALY/huaqiangu_dictionary/仙侠奇缘之花千骨.scel",dictname = "huaqiangu2")
+installDict("DICTIONALY/huaqiangu_dictionary/凡人修仙.scel",dictname = "huaqiangu3")
+##查看安装好的词库
+listDict()
+```
+
+  如果你担心词库不够完整，那么可以自行添加一些高频词，或者你关心的词。
+```{r eval=FALSE}
+##添加词汇
+insertWords(c("师父","没我帅","有木有"))
+```
+  词库安装好之后，就可以进行分词啦。
+```{r eval=FALSE}
+##3.2 分词
+segmentCN("data/novel_huaqiangu.txt",outfile = "data/seg.huaqiangu.txt")
+##运行完后请detach()包，removeWords()函数与tm包中的同名函数冲突。
+detach("package:Rwordseg", unload=TRUE)
+```
+
+####肆. 清洗过程
+
+  这里的清洗过程，也称为**创建语料库**，也就是对上一步分割好的词语进一步用tm包处理，以变换为用于分析的语料库，可不是洗菜洗衣服啦。
+```{r eval=FALSE}
+##4.1 读入分词后的文本
+mydoc2<-read.csv(file="data/seg.huaqiangu.txt",header = FALSE, stringsAsFactors =FALSE,sep ="",encoding = "UTF-8")
+## 查看读取的结果
+str(mydoc2)
+head(mydoc2)
+```
+  这一步让小明头疼纠结了很久。可能是R对中文的支持还存在一定的问题，读入中文的文本文档需要格外小心，需要随时查看是否读入的是乱码。如果是乱码，就需要额外设置一下encoding选项，或者在Rstudio的Global Options中设置。
+  
+  废话不多说，下面开始建立语料库的过程。
+```{r eval=FALSE}
+##4.2 建立语料库
+library(tm)
+mydoc.vec2<-VectorSource(mydoc2)
+##动态语料库
+mydoc.corpus2<-Corpus(mydoc.vec2)
+```
+
+  我们知道，一段文字里面频率较高的一些词，如“然而并没有什么卵用”中的"而"，"没有"，“什么”，可能对我们并无意义，我们只需要高冷的说一句：“然/并/卵”，大家就秒懂了。这说的就是停用词库的作用啦。就是去掉这些我们并不关心的词语。
+```{r eval=FALSE}
+##4.3 去除停止词
+#读取停用词，挨个转换到一个列表
+data_stw<-read.csv(file="DICTIONALY/stop_words_chinese.txt",header = FALSE, stringsAsFactors =FALSE,sep ="")
+
+stopwords_CN=c(NULL)
+for(i in 1:dim(data_stw)[1]){
+  stopwords_CN=c(stopwords_CN,data_stw[i,1])
+}
+#查看
+head(stopwords_CN)
+#删除停用词
+mydoc.corpus2<-tm_map(mydoc.corpus2,removeWords,stopwords_CN)
+```
+  去除停用词之后，可能还有一些我们并不关心的词，如：数字，空白（废话），特定词（如，小明很讨厌的一些敏感词，“呵呵”，"吃饭"，"去洗澡"），也可以一并去掉。
+  
+```{r eval=FALSE}
+#删除数字
+mydoc.corpus2<-tm_map(mydoc.corpus2,removeNumbers)   
+#删除空白
+mydoc.corpus2<-tm_map(mydoc.corpus2,stripWhitespace)              
+#删除特定词：
+spe_word<-c("呵呵","吃饭","去洗澡")
+mydoc.corpus<-tm_map(mydoc.corpus,removeWords,spe_word)
+```
+  清洗完成，下面就可以正式开始展开分析啦。
+
+####伍.词云绘制
+  其实，到这一步就可以开始各种高级模型的分析了，如人物关系探究（社交网络分析），把好人和坏人分类（聚类）等等。
+  这里，先绘制词云，一睹为快。
+```{r eval=FALSE}
+##5.1 建立TDM矩阵（TDM就是"词语×文档"的矩阵）
+#设置一些建立矩阵的参数，用变量control来存储参数,控制如何抽取文档
+control2<-list(removePunctuation=T,minDocFreq=5,wordLengths = c(1, Inf))    
+#建立TDM矩阵
+mydoc.tdm2<-TermDocumentMatrix(mydoc.corpus2,control2)
+##查看原来有多少词
+length(mydoc.tdm2$dimnames$Terms)  
+##去掉低于20%的稀疏词
+tdm_removed2<-removeSparseTerms(mydoc.tdm2, 0.2) 
+length(tdm_removed2$dimnames$Terms)
+##查看高频词
+findFreqTerms(mydoc.tdm2,lowfreq = 10)
+
+```
+  
+  探索到这一步，小明已经等不及了，先看看花千骨究竟跟谁有瓜葛。
+```{r eval=FALSE}
+##查看与某个词的相关系数
+findAssocs(mydoc.tdm2,"小骨",0.5)
+findAssocs(mydoc.tdm2,"白子画",0.5)
+findAssocs(mydoc.tdm2,"花千骨",0.5)
+##数据框格式转换
+
+```
+
+  下面正式开始词云的绘制。  
+```{r eval=FALSE}
+##词云绘制
+library(wordcloud)
+m2<-as.matrix(tdm_removed2)
+head(m2)
+v2<-sort(rowSums(m2), decreasing = TRUE)
+v2
+set.seed(4363)
+wordcloud(names(v2), v2, min.freq = 50)
+```
+  “咦？怎么一团乌黑，跟我在网上看到的高大上词云不一样？”[Google搜索](http://www.r-bloggers.com/word-clouds-using-text-mining/)一番之后，小明找到了如下的colorful展示方法。
+```{r eval=FALSE}
+###colorful的展示
+require(XML)
+require(tm)
+require(wordcloud)
+require(RColorBrewer)
+
+# 
+ap.d2 <- data.frame(word = names(v2),freq=v2)
+table(ap.d2$freq)
+
+pal2 <- brewer.pal(8,"Dark2")
+png("img/wordcloud_huaqiangu.png", width=1280,height=800)
+wordcloud(ap.d2$word,ap.d2$freq, scale=c(8,.2),min.freq=10,
+          max.words=Inf, random.order=FALSE, rot.per=.15, colors=pal2)
+dev.off()
+
+```
+![](img/wordcloud_huaqiangu.png)  
+
+  ？！！！原来女神小骨的心中只有自己跟师父，让小明安静的哭一会儿。
+  
+  
+  
+####参考文献
+[1] [_Word Clouds using Text Mining_](http://www.r-bloggers.com/word-clouds-using-text-mining/)  
+[2] [尝试用R进行文本分析](http://blog.sina.com.cn/s/blog_54f07aba0102vfsw.html)  
+[3][李舰,_Rwordseg_Vignette_CN_]    
+[4][刘思喆,_Text Mining in R_]    
+  
+  
