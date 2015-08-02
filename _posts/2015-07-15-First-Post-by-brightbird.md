@@ -1,6 +1,6 @@
 ---
 layout: post
-title: First Post by brightbird
+title: 可以修改标题吗
 ---
 
 This is my first post, how exciting!  
