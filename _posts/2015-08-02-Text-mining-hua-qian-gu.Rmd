@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Text mining hua qian gu"
+title: Text mining hua qian gu
 author: "brightbird"
 date: "2015年8月2日"
 output: html_document
